@@ -1,6 +1,10 @@
 package math3d
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+	"unsafe"
+)
 
 type Matrix struct {
 	values [16]float32
@@ -12,49 +16,6 @@ var indexes = [4][4]int {
 	[4]int{ 8,  9,  10, 11 },
 	[4]int{ 12, 13, 14, 15 },
 }
-
-/*
-var parallelism int
-
-var functions = [4]func(m, n, p *Matrix) {
-	NaiveMultiply,
-	ParallelMultiply2,
-	ParallelMultiply3,
-	ParallelMultiply4,
-}
-
-func init() {
-	num := runtime.NumCPU()
-	fmt.Printf("Num CPU: %d\n", num)
-	
-	switch {
-		case num > 4 :
-			parallelism = 4
-		case num < 1 :
-			parallelism = 1
-		default :
-			parallelism = num
-	}
-	
-	parallelism = 4
-}
-
-func SetParallelism(p int) {
-	if p <= 0 {
-		parallelism = 1
-	
-	} else if p > 4 {
-		parallelism = 4
-
-	} else {
-		parallelism = p
-	}
-}
-
-func GetParallelism() int {
-	return parallelism
-}
-*/
 
 func NewMatrix(values [16]float32) *Matrix {
 	r := new(Matrix)
@@ -71,6 +32,123 @@ func Identity() *Matrix {
 			0.0, 0.0, 0.0, 1.0,
 		}
 	return m
+}
+
+func Perspective(fovy float32, aspect float32, zNear float32, zFar float32) *Matrix {
+/*
+	r := DegreesToRadians64(float64(fovy) / 2.0)
+	deltaZ := zFar - zNear
+	s := math.Sin(r)
+
+	if (deltaZ == 0 || s == 0 || aspect == 0) {
+		return nil
+	}
+	
+	cotangent := float32(math.Cos(r) / s)
+	
+	result := new(Matrix)
+	result.values[0] = cotangent / aspect
+	result.values[5] = cotangent
+	result.values[10] = - (zFar + zNear) / deltaZ;
+	result.values[11] = -float32(1.0);
+	result.values[14] = (-float32(2.0) * zNear * zFar) / deltaZ;
+	//result.values[15] = 0.0
+	result.Print()
+	return result
+*/
+	r := DegreesToRadians64(float64(fovy)) / 2.0
+	cotanHalfFovy := float32(1.0 / math.Tan(r))
+	
+	result := new(Matrix)
+	result.values[indexes[0][0]] = cotanHalfFovy / aspect
+	result.values[indexes[1][1]] = cotanHalfFovy
+	
+	result.values[indexes[2][3]] = -1.0
+	
+	result.values[indexes[2][2]] = (zFar + zNear) / (zNear - zFar)
+	result.values[indexes[2][3]] = (2.0 * zFar * zNear) / (zNear - zFar)
+	
+	
+	result.Print()
+	//result.values[15] = 0.0
+	return result
+	
+	/*
+	xymax := float64(zNear) * math.Tan(float64(fovy) * math.Pi / 360.0)
+	ymin := -xymax
+	xmin := -xymax
+
+	width := xymax - xmin
+	height := xymax - ymin
+
+	depth := zFar - zNear
+	q := -(zFar + zNear) / depth
+	qn := -2 * (zFar * zNear) / depth
+
+	w := 2 * float64(zNear) / width
+	w = w / float64(aspect)
+	h := 2 * float64(zNear) / height
+
+	m := new(Matrix)
+	m.values[0]  = float32(w)
+	m.values[1]  = 0
+	m.values[2]  = 0
+	m.values[3]  = 0
+
+	m.values[4]  = 0
+	m.values[5]  = float32(h)
+	m.values[6]  = 0
+	m.values[7]  = 0
+
+	m.values[8]  = 0
+	m.values[9]  = 0
+	m.values[10] = q
+	m.values[11] = -1
+
+	m.values[12] = 0
+	m.values[13] = 0
+	m.values[14] = qn
+	m.values[15] = 0
+	m.Print()
+	return m
+	*/
+}
+
+func Translation(v *Vector) *Matrix {
+	r := Identity()
+	r.values[12] = v.values[0]
+	r.values[13] = v.values[1]
+	r.values[14] = v.values[2]
+	return r
+}
+
+func LookAt(eye *Vector, center *Vector, up *Vector) *Matrix {
+	f := center.Subtract(eye)
+	f = f.Normalize()
+	
+	u := up.Normalize()
+	
+	s := f.Cross(u)
+	s = s.Normalize()
+	
+	u = s.Cross(f)
+	u = u.Normalize()
+
+	ret := Matrix{}
+	ret.values[0] = s.values[0]
+	ret.values[4] = s.values[1]
+	ret.values[8] = s.values[2]
+	
+	ret.values[1] = u.values[0]
+	ret.values[5] = u.values[1]
+	ret.values[9] = u.values[2]
+	
+	ret.values[2] = -f.values[0]
+	ret.values[6] = -f.values[1]
+	ret.values[10] = -f.values[2]
+
+	translate := Translation(NewVector([3]float32{ -eye.values[0], -eye.values[1], -eye.values[2] }))
+	return ret.Multiply(translate)
 }
 
 func (m *Matrix) Print() {
@@ -99,61 +177,21 @@ func MultiplyMatrices(n ... *Matrix) *Matrix {
 	return r
 }
 
+func (m *Matrix) Pointer() unsafe.Pointer {
+	return unsafe.Pointer(&m.values[0])
+}
+
 func NaiveMultiply(m, n, p *Matrix) *Matrix {
 	for i := 0; i < 4; i++ {
-		calculateRow(i, m, n, p)
+		for j := 0; j < 4; j++ {
+			p.values[indexes[i][j]] = m.values[indexes[i][0]] * n.values[indexes[0][j]] + 
+										m.values[indexes[i][1]] * n.values[indexes[1][j]] + 
+										m.values[indexes[i][2]] * n.values[indexes[2][j]] +
+										m.values[indexes[i][3]] * n.values[indexes[3][j]]
+		}
 	}
 	return p
 }
-
-func calculateRow(i int, m *Matrix, n *Matrix, r *Matrix) {
-	for j := 0; j < 4; j++ {
-		r.values[indexes[i][j]] = m.values[indexes[i][0]] * n.values[indexes[0][j]] + 
-									m.values[indexes[i][1]] * n.values[indexes[1][j]] + 
-									m.values[indexes[i][2]] * n.values[indexes[2][j]] +
-									m.values[indexes[i][3]] * n.values[indexes[3][j]]
-	}
-}
-
-/*
-func parallelHelper(c chan int, i int, m *Matrix, n *Matrix, r *Matrix) {
-	calculateRow(i, m, n, r)
-	if c != nil {
-		c <- 1
-	}
-}
-
-func ParallelMultiply2(m, n, p *Matrix) {
-	c := make(chan int, 2)
-	go parallelHelper(c, 0, m, n, p)
-	calculateRow(1, m, n, p)
-	go parallelHelper(c, 2, m, n, p)
-	calculateRow(3, m, n, p)
-	<-c
-	<-c
-}
-
-func ParallelMultiply3(m, n, p *Matrix) {
-	c := make(chan int, 2)
-	go parallelHelper(c, 0, m, n, p)
-	go parallelHelper(c, 1, m, n, p)
-	calculateRow(2, m, n, p)
-	calculateRow(3, m, n, p)
-	<-c
-	<-c
-}
-
-func ParallelMultiply4(m, n, p *Matrix) {
-	c := make(chan int, 3)
-	go parallelHelper(c, 0, m, n, p)
-	go parallelHelper(c, 1, m, n, p)
-	go parallelHelper(c, 2, m, n, p)
-	calculateRow(3, m, n, p)
-	<-c
-	<-c
-	<-c
-}
-*/
 
 func (m *Matrix) Multiply(n *Matrix) *Matrix {
 	if n == nil {
@@ -169,3 +207,4 @@ func (m *Matrix) MultiplyP(n *Matrix, p *Matrix) *Matrix {
 	
 	return p
 }
+

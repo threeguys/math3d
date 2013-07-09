@@ -1,9 +1,6 @@
 package math3d
 
-import (
-	"fmt"
-//	"runtime"
-)
+import "fmt"
 
 type Matrix struct {
 	values [16]float32

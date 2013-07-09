@@ -7,7 +7,13 @@ Most of the math has been lifted from either pages around the net and reading th
 
 Also, I'm brand new to go so if you see anything odd, please let me know. Any input is appreciated.
 
-Here's a list of the implemented primitives and related operations:
+Installation
+------------
+To install the package in your go library, run the following from the terminal:
+
+`go get github.com/threeguys/math3d`
+
+There are currently no other dependencies.
 
 Vector
 ------

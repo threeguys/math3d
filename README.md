@@ -97,12 +97,27 @@ Matrix
 			<td>Multiplies the current matrix with the passed in matrix and returns a new matrix with the result. Naive implementation with nested loops. Should probably be private but it's currently public in order to do some performance testing</td>
 		</tr>
 		<tr>
-			<td>ParallelNaiveMultiply</td>
-			<td>Multiplies the current matrix with the passed in matrix and returns a new matrix with the result. Naive implementation with some simple parallelization that gave about a 40% speed up. Should probably be private but it's currently public in order to do some performance testing. Scales with the number of CPUs (up to 4).</td>
-		</tr>
-		<tr>
 			<td>Multiply</td>
-			<td>Currently just calls ParallelNaiveMultiply. Intended to be the public face of matrix multiplication</td>
+			<td>Currently just calls NaiveMultiply. Intended to be the public face of matrix multiplication</td>
 		</tr>
 	</tbody>
 </table>
+
+License
+-------
+
+*Released under Apache 2 license*
+
+Copyright 2013 Ray Cole
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

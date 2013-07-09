@@ -35,7 +35,7 @@ func Identity() *Matrix {
 }
 
 func Perspective(fovy float32, aspect float32, zNear float32, zFar float32) *Matrix {
-/*
+
 	r := DegreesToRadians64(float64(fovy) / 2.0)
 	deltaZ := zFar - zNear
 	s := math.Sin(r)
@@ -46,16 +46,16 @@ func Perspective(fovy float32, aspect float32, zNear float32, zFar float32) *Mat
 	
 	cotangent := float32(math.Cos(r) / s)
 	
-	result := new(Matrix)
+	result := Identity()
 	result.values[0] = cotangent / aspect
 	result.values[5] = cotangent
 	result.values[10] = - (zFar + zNear) / deltaZ;
 	result.values[11] = -float32(1.0);
 	result.values[14] = (-float32(2.0) * zNear * zFar) / deltaZ;
-	//result.values[15] = 0.0
+	result.values[15] = 0.0
 	result.Print()
 	return result
-*/
+/*
 	r := DegreesToRadians64(float64(fovy)) / 2.0
 	cotanHalfFovy := float32(1.0 / math.Tan(r))
 	
@@ -72,7 +72,7 @@ func Perspective(fovy float32, aspect float32, zNear float32, zFar float32) *Mat
 	result.Print()
 	//result.values[15] = 0.0
 	return result
-	
+		*/
 	/*
 	xymax := float64(zNear) * math.Tan(float64(fovy) * math.Pi / 360.0)
 	ymin := -xymax
@@ -193,6 +193,29 @@ func NaiveMultiply(m, n, p *Matrix) *Matrix {
 	return p
 }
 
+func unrolledMultiply(m1, m2, mat *Matrix) *Matrix {
+	mat.values[0] = m1.values[0] * m2.values[0] + m1.values[4] * m2.values[1] + m1.values[8] * m2.values[2] + m1.values[12] * m2.values[3]
+	mat.values[1] = m1.values[1] * m2.values[0] + m1.values[5] * m2.values[1] + m1.values[9] * m2.values[2] + m1.values[13] * m2.values[3];
+	mat.values[2] = m1.values[2] * m2.values[0] + m1.values[6] * m2.values[1] + m1.values[10] * m2.values[2] + m1.values[14] * m2.values[3];
+	mat.values[3] = m1.values[3] * m2.values[0] + m1.values[7] * m2.values[1] + m1.values[11] * m2.values[2] + m1.values[15] * m2.values[3];
+
+	mat.values[4] = m1.values[0] * m2.values[4] + m1.values[4] * m2.values[5] + m1.values[8] * m2.values[6] + m1.values[12] * m2.values[7];
+	mat.values[5] = m1.values[1] * m2.values[4] + m1.values[5] * m2.values[5] + m1.values[9] * m2.values[6] + m1.values[13] * m2.values[7];
+	mat.values[6] = m1.values[2] * m2.values[4] + m1.values[6] * m2.values[5] + m1.values[10] * m2.values[6] + m1.values[14] * m2.values[7];
+	mat.values[7] = m1.values[3] * m2.values[4] + m1.values[7] * m2.values[5] + m1.values[11] * m2.values[6] + m1.values[15] * m2.values[7];
+
+	mat.values[8] = m1.values[0] * m2.values[8] + m1.values[4] * m2.values[9] + m1.values[8] * m2.values[10] + m1.values[12] * m2.values[11];
+	mat.values[9] = m1.values[1] * m2.values[8] + m1.values[5] * m2.values[9] + m1.values[9] * m2.values[10] + m1.values[13] * m2.values[11];
+	mat.values[10] = m1.values[2] * m2.values[8] + m1.values[6] * m2.values[9] + m1.values[10] * m2.values[10] + m1.values[14] * m2.values[11];
+	mat.values[11] = m1.values[3] * m2.values[8] + m1.values[7] * m2.values[9] + m1.values[11] * m2.values[10] + m1.values[15] * m2.values[11];
+
+	mat.values[12] = m1.values[0] * m2.values[12] + m1.values[4] * m2.values[13] + m1.values[8] * m2.values[14] + m1.values[12] * m2.values[15];
+	mat.values[13] = m1.values[1] * m2.values[12] + m1.values[5] * m2.values[13] + m1.values[9] * m2.values[14] + m1.values[13] * m2.values[15];
+	mat.values[14] = m1.values[2] * m2.values[12] + m1.values[6] * m2.values[13] + m1.values[10] * m2.values[14] + m1.values[14] * m2.values[15];
+	mat.values[15] = m1.values[3] * m2.values[12] + m1.values[7] * m2.values[13] + m1.values[11] * m2.values[14] + m1.values[15] * m2.values[15];
+	return mat
+}
+
 func (m *Matrix) Multiply(n *Matrix) *Matrix {
 	if n == nil {
 		return m
@@ -202,7 +225,7 @@ func (m *Matrix) Multiply(n *Matrix) *Matrix {
 
 func (m *Matrix) MultiplyP(n *Matrix, p *Matrix) *Matrix {
 	if n != nil {
-		NaiveMultiply(m, n, p)
+		unrolledMultiply(m, n, p)
 	}
 	
 	return p

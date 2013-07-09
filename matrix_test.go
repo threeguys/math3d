@@ -48,7 +48,7 @@ func Test_NaiveMultiply(t *testing.T) {
 	}
 	n.Print()
 	
-	r := m.NaiveMultiply(n)
+	r := NaiveMultiply(m, n, new(Matrix))
 	r.Print()
 	
 	vrfy := &Matrix{ [16]float32 {
@@ -67,6 +67,7 @@ func Test_NaiveMultiply(t *testing.T) {
 	}
 }
 
+/*
 func Test_ParallelNaiveMultiply(t *testing.T) {
 	m := new(Matrix)
 	m.values = [16]float32 {
@@ -104,6 +105,7 @@ func Test_ParallelNaiveMultiply(t *testing.T) {
 		r.Print()
 	}
 }
+*/
 
 func Test_MultiplyMatrices(t *testing.T) {
 	m := new(Matrix)

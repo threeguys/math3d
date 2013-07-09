@@ -2,7 +2,7 @@ package math3d
 
 import (
 	"fmt"
-	"runtime"
+//	"runtime"
 )
 
 type Matrix struct {
@@ -16,10 +16,19 @@ var indexes = [4][4]int {
 	[4]int{ 12, 13, 14, 15 },
 }
 
+/*
 var parallelism int
+
+var functions = [4]func(m, n, p *Matrix) {
+	NaiveMultiply,
+	ParallelMultiply2,
+	ParallelMultiply3,
+	ParallelMultiply4,
+}
 
 func init() {
 	num := runtime.NumCPU()
+	fmt.Printf("Num CPU: %d\n", num)
 	
 	switch {
 		case num > 4 :
@@ -29,7 +38,26 @@ func init() {
 		default :
 			parallelism = num
 	}
+	
+	parallelism = 4
 }
+
+func SetParallelism(p int) {
+	if p <= 0 {
+		parallelism = 1
+	
+	} else if p > 4 {
+		parallelism = 4
+
+	} else {
+		parallelism = p
+	}
+}
+
+func GetParallelism() int {
+	return parallelism
+}
+*/
 
 func NewMatrix(values [16]float32) *Matrix {
 	r := new(Matrix)
@@ -74,56 +102,73 @@ func MultiplyMatrices(n ... *Matrix) *Matrix {
 	return r
 }
 
-func (m *Matrix) NaiveMultiply(n *Matrix) *Matrix {
-	
-	r := new(Matrix)
+func NaiveMultiply(m, n, p *Matrix) *Matrix {
 	for i := 0; i < 4; i++ {
-		for j := 0; j < 4; j++ {
-			r.values[indexes[i][j]] = m.values[indexes[i][0]] * n.values[indexes[0][j]] + 
-										m.values[indexes[i][1]] * n.values[indexes[1][j]] + 
-										m.values[indexes[i][2]] * n.values[indexes[2][j]] +
-										m.values[indexes[i][3]] * n.values[indexes[3][j]]
-		
-		}
+		calculateRow(i, m, n, p)
 	}
-	
-	return r
+	return p
 }
 
-func parallelHelper(c chan int, i int, m *Matrix, n *Matrix, r *Matrix) {
+func calculateRow(i int, m *Matrix, n *Matrix, r *Matrix) {
 	for j := 0; j < 4; j++ {
 		r.values[indexes[i][j]] = m.values[indexes[i][0]] * n.values[indexes[0][j]] + 
 									m.values[indexes[i][1]] * n.values[indexes[1][j]] + 
 									m.values[indexes[i][2]] * n.values[indexes[2][j]] +
 									m.values[indexes[i][3]] * n.values[indexes[3][j]]
 	}
+}
+
+/*
+func parallelHelper(c chan int, i int, m *Matrix, n *Matrix, r *Matrix) {
+	calculateRow(i, m, n, r)
 	if c != nil {
 		c <- 1
 	}
 }
 
-func (m *Matrix) ParallelNaiveMultiply(n *Matrix) *Matrix {
-	r := new(Matrix)
-	c := make(chan int, parallelism)
-	
-	for i := 0; i < parallelism; i++ {
-		go parallelHelper(c, i, m, n, r)
-	}
-	
-	for i := parallelism; i < 4; i++ {
-		parallelHelper(nil, i, m, n, r)
-	}	
-	
-	for i := 0; i < parallelism; i++ {
-		<-c
-	}
-	
-	return r
+func ParallelMultiply2(m, n, p *Matrix) {
+	c := make(chan int, 2)
+	go parallelHelper(c, 0, m, n, p)
+	calculateRow(1, m, n, p)
+	go parallelHelper(c, 2, m, n, p)
+	calculateRow(3, m, n, p)
+	<-c
+	<-c
 }
+
+func ParallelMultiply3(m, n, p *Matrix) {
+	c := make(chan int, 2)
+	go parallelHelper(c, 0, m, n, p)
+	go parallelHelper(c, 1, m, n, p)
+	calculateRow(2, m, n, p)
+	calculateRow(3, m, n, p)
+	<-c
+	<-c
+}
+
+func ParallelMultiply4(m, n, p *Matrix) {
+	c := make(chan int, 3)
+	go parallelHelper(c, 0, m, n, p)
+	go parallelHelper(c, 1, m, n, p)
+	go parallelHelper(c, 2, m, n, p)
+	calculateRow(3, m, n, p)
+	<-c
+	<-c
+	<-c
+}
+*/
 
 func (m *Matrix) Multiply(n *Matrix) *Matrix {
 	if n == nil {
 		return m
 	}
-	return m.ParallelNaiveMultiply(n)
+	return m.MultiplyP(n, new(Matrix))
+}
+
+func (m *Matrix) MultiplyP(n *Matrix, p *Matrix) *Matrix {
+	if n != nil {
+		NaiveMultiply(m, n, p)
+	}
+	
+	return p
 }

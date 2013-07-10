@@ -1,6 +1,9 @@
 package math3d
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 const (
 	x = 0
@@ -173,5 +176,9 @@ func (u *Vector) ScaleP(factor float32, p *Vector) *Vector {
 	p.values[y] = u.values[y] * factor
 	p.values[z] = u.values[z] * factor
 	return p
+}
+
+func (u *Vector) Print() {
+	fmt.Printf("%4.3f", u.values)
 }
 
